@@ -65,19 +65,14 @@ class PlaceHolder:
         self.keepDelimiters = trueOrFalse
 
     def isToSkip(self, delimiters: str, string: str):
-        if delimiters == '()' and string in ['s', 'en anglais', 'en français']:
-            return True
-        else:
-            return False
+        return delimiters == '()' and string in {'s', 'en anglais', 'en français'}
 
     def sub(self, matchObject) -> str:
         if self.isToSkip(matchObject.group(1) + matchObject.group(3), matchObject.group(2)):
             return matchObject.group(1) + matchObject.group(2) + matchObject.group(3)
 
         self.count += 1
-        name = ''
-        if self.usePlaceHolders:
-            name = ':' + matchObject.group(2)
+        name = f':{matchObject.group(2)}' if self.usePlaceHolders else ''
         if self.keepDelimiters:
             return matchObject.group(1) + '${' + str(self.count) + name + '}' + matchObject.group(3)
         else:
@@ -107,12 +102,12 @@ class CwlIntel:
         try:
             self.commands = json.load(open(commands_file, encoding='utf8'))
         except:
-            print('Cannot read JSON file {}'.format(commands_file))
+            print(f'Cannot read JSON file {commands_file}')
             self.commands = []
         try:
             self.envs = json.load(open(envs_file, encoding='utf8'))
         except:
-            print('Cannot read JSON file {}'.format(envs_file))
+            print(f'Cannot read JSON file {envs_file}')
             self.envs = []
         self.compute_unimathsymbols()
 
@@ -131,10 +126,8 @@ class CwlIntel:
                 continue
             line = line.strip()
             arry = line.split('^')
-            cmds.append(re.sub(r'^\\', '', arry[2]))
-            cmds.append(re.sub(r'^\\', '', arry[3]))
-            for m in re.finditer(r'= \\(\w+)[ ,]', arry[-1]):
-                cmds.append(m.group(1))
+            cmds.extend((re.sub(r'^\\', '', arry[2]), re.sub(r'^\\', '', arry[3])))
+            cmds.extend(m.group(1) for m in re.finditer(r'= \\(\w+)[ ,]', arry[-1]))
             doc = re.sub(r'\s*[=#xt]\s*\\\w+(\{.*?\})?\s*(\(.*?\))?\s*,', '', arry[-1])
             doc = re.sub(r'\s*[=#xt]\s*\S+\s*,', '', doc)
             doc = doc.strip()
@@ -155,7 +148,7 @@ class CwlIntel:
         if type(file_path) == str:
             file_path = Path(file_path)
         if not file_path.exists():
-            print('File {} does not exist'.format(file_path.as_posix))
+            print(f'File {file_path.as_posix} does not exist')
             return ({}, {})
         package = file_path.stem
         with file_path.open(encoding='utf8') as f:
@@ -193,10 +186,7 @@ class CwlIntel:
                 name = re.sub(r'(\{|\[)[^\{\[\$]*(\}|\])', r'\1\2', command)
                 name = re.sub(r'\([^\{\}\[\]\(\)]*\)', r'()', name)
                 name = re.sub(r'\<[a-zA-Z\s]*\>', '<>', name)
-                if remove_spaces:
-                    name = name.replace(' ', '')
-                else:
-                    name = name.strip()
+                name = name.replace(' ', '') if remove_spaces else name.strip()
                 command_dict: Dict[str, str] = {'command': command, 'package': package}
                 if name in self.commands:
                     continue
