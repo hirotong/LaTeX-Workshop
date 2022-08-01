@@ -16,20 +16,23 @@ UNIMATHSYMBOLS = CWD.joinpath('unimathsymbols.txt').resolve()
 COMMANDS_FILE = CWD.joinpath('../data/commands.json').resolve()
 ENVS_FILE = CWD.joinpath('../data/environments.json').resolve()
 OUT_DIR = CWD.joinpath('../data/packages').resolve()
-INFILES = None
-
 parser = argparse.ArgumentParser()
-parser.add_argument('-o', '--outdir', help='Directory where to write the JSON files. Default is {}'.format(OUT_DIR), type=str)
+parser.add_argument(
+    '-o',
+    '--outdir',
+    help=f'Directory where to write the JSON files. Default is {OUT_DIR}',
+    type=str,
+)
+
 parser.add_argument('-i', '--infile', help='Files to process. Default is the content of https://github.com/LaTeXing/LaTeX-cwl/', type=str, nargs='+')
 args = parser.parse_args()
 
 if args.outdir:
     OUT_DIR = Path(args.outdir).expanduser().resolve()
     if not OUT_DIR.is_dir():
-        print('The path passed to --outdir is not a directory: {}'.format(args.outdir))
+        print(f'The path passed to --outdir is not a directory: {args.outdir}')
         sys.exit(0)
-if args.infile:
-    INFILES = args.infile
+INFILES = args.infile or None
 
 
 def get_cwl_files() -> List[Path]:
@@ -40,11 +43,11 @@ def get_cwl_files() -> List[Path]:
     zip_ref = zipfile.ZipFile(cwl_zip, 'r')
     zip_ref.extractall(CWD.joinpath('cwl/'))
     zip_ref.close()
-    files = []
-    for f in CWD.joinpath('cwl/LaTeX-cwl-master').iterdir():
-        if f.suffix == '.cwl':
-            files.append(f)
-    return files
+    return [
+        f
+        for f in CWD.joinpath('cwl/LaTeX-cwl-master').iterdir()
+        if f.suffix == '.cwl'
+    ]
 
 def dump_dict(dictionnary, out_json):
     if dictionnary != {}:
@@ -61,8 +64,8 @@ def parse_cwl_files(cwl_files):
         if cwl_file.name in FILES_TO_REMOVE_SPACES_IN:
             remove_spaces = True
         (pkg_cmds, pkg_envs) = cwlIntel.parse_cwl_file(cwl_file, remove_spaces)
-        dump_dict(pkg_envs, OUT_DIR.joinpath(cwl_file.stem + '_env.json'))
-        dump_dict(pkg_cmds, OUT_DIR.joinpath(cwl_file.stem + '_cmd.json'))
+        dump_dict(pkg_envs, OUT_DIR.joinpath(f'{cwl_file.stem}_env.json'))
+        dump_dict(pkg_cmds, OUT_DIR.joinpath(f'{cwl_file.stem}_cmd.json'))
 
 
 if __name__ == '__main__':
@@ -79,6 +82,13 @@ if __name__ == '__main__':
     if do_copy:
         # Handle aggregated files
         for scr in ['scrartcl', 'scrreprt', 'scrbook']:
-            dest = OUT_DIR.joinpath('class-' + scr)
-            copy(OUT_DIR.joinpath('class-scrartcl,scrreprt,scrbook_cmd.json'), dest.as_posix() + '_cmd.json')
-            copy(OUT_DIR.joinpath('class-scrartcl,scrreprt,scrbook_env.json'), dest.as_posix() + '_env.json')
+            dest = OUT_DIR.joinpath(f'class-{scr}')
+            copy(
+                OUT_DIR.joinpath('class-scrartcl,scrreprt,scrbook_cmd.json'),
+                f'{dest.as_posix()}_cmd.json',
+            )
+
+            copy(
+                OUT_DIR.joinpath('class-scrartcl,scrreprt,scrbook_env.json'),
+                f'{dest.as_posix()}_env.json',
+            )
